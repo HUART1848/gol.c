@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <time.h>
 
 typedef uint32_t u32;
 
@@ -49,6 +50,12 @@ void gol_set(gol *g, u32 x, u32 y, bool state, bool back) {
     }
 
     g->front[y * g->w + x] = state;
+}
+
+void gol_random(gol *g) {
+    for (u32 i = 0; i < g->w * g->h; ++i) {
+        gol_set(g, i % g->w, i / g->w, rand() % 2 == 0, false);
+    }
 }
 
 void gol_swap(gol *g) {
@@ -98,35 +105,65 @@ void gol_display(gol *g) {
     }
 }
 
-void gol_to_ppm(gol *g, char *path, u32 scale) {
+void gol_to_ppm(gol *g, char *path) {
     FILE *f;
 
     f = fopen(path, "w");
     if (f == NULL) {
-        printf("Can't write file %s", path);
+        printf("Can't write file %s\n", path);
+        gol_free(g);
+        exit(1);
+    }
+
+    printf("%s\n", path);
+    fprintf(f, "P5\n%d %d\n1\n", g->w, g->h);
+    fwrite(g->front, 1, g->w * g->h, f);
+
+    fclose(f);
+}
+
+void gol_to_ppm_upscaled(gol *g, bool *buf, char *path, u32 scale) {
+    FILE *f;
+
+    f = fopen(path, "w");
+    if (f == NULL) {
+        printf("Can't write file %s\n", path);
+        fclose(f);
+
+        gol_free(g);
+        exit(1);
+    }
+
+    printf("%s\n", path);
+
+    if (scale < 2) {
+        printf("ERROR: scale should be > 1");
+
+        fclose(f);
+        free(buf);
+        gol_free(g);
+
         exit(1);
     }
 
     fprintf(f, "P5\n%d %d\n1\n", g->w * scale, g->h * scale);
 
-    bool *img = malloc(sizeof(bool) * g->w * g->h * scale * scale);
     for (u32 i = 0; i < g->w * g->h; ++i) {
         for (u32 dx = 0; dx < scale; ++dx) {
             for (u32 dy = 0; dy < scale; ++dy) {
                 u32 x = (i % g->w) * scale + dx;
-                u32 y = (i / g->h) * scale + dy;
+                u32 y = (i / g->w) * scale + dy;
 
-                img[y * g->w * scale + x] = g->front[i];
+                buf[y * g->w * scale + x] = g->front[i];
             }
         }
     }
 
-    fwrite(img, 1, g->w * g->h * scale * scale, f);
-    free(img);
+    fwrite(buf, 1, g->w * g->h * scale * scale, f);
     fclose(f);
 }
 
-void gol_run(gol *g, u32 n) {
+void gol_console(gol *g, u32 n) {
     for (u32 i = 0; i <= n; ++i) {
         printf("Step %d\n", i);
         if (i == 0) {
@@ -138,32 +175,41 @@ void gol_run(gol *g, u32 n) {
     }
 }
 
-void gol_run_frames(gol *g, char *dirname, u32 n, u32 scale) {
+void gol_frames(gol *g, char *dirname, u32 n) {
     char path[100];
 
     for (u32 i = 0; i <= n; ++i) {
         sprintf(path, "%s/%d.pgm", dirname, i);
-        printf("%s\n", path);
-        if (i == 0) {
-            gol_to_ppm(g, path, scale);
+        if (i != 0) {
+            gol_step(g);
         }
-        gol_step(g);
-        gol_to_ppm(g, path, scale);
+        gol_to_ppm(g, path);
     }
+}
+
+void gol_frames_upscaled(gol *g, char *dirname, u32 n, u32 scale) {
+    char path[100];
+
+    bool *buf = malloc(sizeof(bool) * g->w * g->h * scale * scale);
+    for (u32 i = 0; i <= n; ++i) {
+        sprintf(path, "%s/%d.pgm", dirname, i);
+        if (i != 0) {
+            gol_step(g);
+        }
+        gol_to_ppm_upscaled(g, buf, path, scale);
+    }
+
+    free(buf);
 }
 
 int main(void) {
     gol g = {0};
-    gol_init(&g, 32, 32);
+    gol_init(&g, 16, 16);
 
-    // Glider
-    gol_set(&g, 2, 0, true, false);
-    gol_set(&g, 2, 1, true, false);
-    gol_set(&g, 2, 2, true, false);
-    gol_set(&g, 0, 1, true, false);
-    gol_set(&g, 1, 2, true, false);
+    srand(time(NULL));
+    gol_random(&g);
 
-    gol_run_frames(&g, "out", 1000, 5);
+    gol_frames_upscaled(&g, "out", 10000, 32);
 
     gol_free(&g);
     return 0;
