@@ -54,7 +54,7 @@ void gol_set(gol *g, u32 x, u32 y, u8 state, u8 back) {
 
 void gol_random(gol *g) {
     for (u32 i = 0; i < g->w * g->h; ++i) {
-        gol_set(g, i % g->w, i / g->w, rand() % 2 == 0, 0);
+        gol_set(g, i % g->w, i / g->w, 255 * (rand() % 2), 0);
     }
 }
 
