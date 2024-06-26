@@ -7,8 +7,8 @@
 
 ## Examples
 
-Pipe output directly to ffmpeg and ffplay for direct visualisation:
+Pipe output directly to ffplay for direct visualisation:
 
 ```bash
-./gol | ffmpeg -y -r 15 -f pgm_pipe -i - -c:v libx264 -r 30 -f matroska - | ffplay -i -
+./gol | ffplay -framerate 30 -i -
 ```
