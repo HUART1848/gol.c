@@ -10,5 +10,5 @@
 Pipe output directly to ffplay for direct visualisation:
 
 ```bash
-./gol | ffplay -framerate 30 -i -
+./gol -w 100 -h 100 -s 4 -n 300 | ffplay -framerate 30 -i -
 ```
