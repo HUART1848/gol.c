@@ -241,12 +241,15 @@ void showhelp() {
 }
 
 int main(int argc, char **argv) {
-    if (argc == 1) { showhelp(); exit(0); } ;
+    if (argc == 1) {
+	showhelp();
+	exit(0);
+    }
     
-    u32 w = 50;
-    u32 h = 50;
-    u32 scale = 10;
-    u32 n = 30 * 10;
+    u32 w = DEFAULT_W;
+    u32 h = DEFAULT_H;
+    u32 scale = DEFAULT_SCALE;
+    u32 n = DEFAULT_N;
 
     long tmp;
     while (shiftargs(&argc, &argv)) {
